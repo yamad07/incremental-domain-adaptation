@@ -3,6 +3,7 @@ import random
 from PIL import Image
 import torch
 
+
 class IDAMNIST(MNIST):
     urls = [
         'http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz',
@@ -15,8 +16,19 @@ class IDAMNIST(MNIST):
     training_file = 'training.pt'
     test_file = 'test.pt'
 
-    def __init__(self, root, train=True, source_transform=None, target_transform=None, download=False):
-        super(IDAMNIST, self).__init__(root=root, train=train, download=download)
+    def __init__(
+            self,
+            root,
+            train=True,
+            source_transform=None,
+            target_transform=None,
+            download=False):
+        super(
+            IDAMNIST,
+            self).__init__(
+            root=root,
+            train=train,
+            download=download)
         self.source_transform = source_transform
         self.target_transform = target_transform
 

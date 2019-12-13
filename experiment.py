@@ -8,41 +8,51 @@ from torchvision import transforms
 
 
 experiment = Experiment(api_key="laHAJPKUmrD2TV2dIaOWFYGkQ",
-                            project_name="iada", workspace="yamad07")
+                        project_name="iada", workspace="yamad07")
 
 source_transform = transforms.Compose([
-        transforms.Resize((28, 28)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, ), (0.5, )),
-    ])
+    transforms.Resize((28, 28)),
+    transforms.ToTensor(),
+    transforms.Normalize((0.5, ), (0.5, )),
+])
 target_transform = transforms.Compose([
-        transforms.Resize((14, 28)),
-        transforms.Pad((0, 7, 0, 7)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, ), (0.5, )),
-    ])
-mnist_dataset = IDAMNIST(root='./data/', download=True, source_transform=source_transform, target_transform=target_transform)
+    transforms.Resize((14, 28)),
+    transforms.Pad((0, 7, 0, 7)),
+    transforms.ToTensor(),
+    transforms.Normalize((0.5, ), (0.5, )),
+])
+mnist_dataset = IDAMNIST(
+    root='./data/',
+    download=True,
+    source_transform=source_transform,
+    target_transform=target_transform)
 train_data_loader = data.DataLoader(mnist_dataset, batch_size=16, shuffle=True)
 
-validate_mnist_dataset = IDAMNIST(root='./data/', train=False, download=True, source_transform=source_transform, target_transform=target_transform)
-validate_data_loader = data.DataLoader(validate_mnist_dataset, batch_size=16, shuffle=True)
+validate_mnist_dataset = IDAMNIST(
+    root='./data/',
+    train=False,
+    download=True,
+    source_transform=source_transform,
+    target_transform=target_transform)
+validate_data_loader = data.DataLoader(
+    validate_mnist_dataset, batch_size=16, shuffle=True)
 
 model = IncrementalAdversarialModel(
-        classifier=Classifier(),
-        domain_discriminator=DomainDiscriminator(),
-        source_generator=SDMG(),
-        source_discriminator=SDMD(),
-        source_encoder=SourceEncoder(),
-        target_encoder=TargetEncoder(),
-        )
+    classifier=Classifier(),
+    domain_discriminator=DomainDiscriminator(),
+    source_generator=SDMG(),
+    source_discriminator=SDMD(),
+    source_encoder=SourceEncoder(),
+    target_encoder=TargetEncoder(),
+)
 
 incremental_adversarial_trainer = IncrementalAdversarialTrainer(
-        experiment=experiment,
-        model=model,
-        train_data_loader=train_data_loader,
-        valid_data_loader=validate_data_loader,
-        cuda_id=1
-        )
+    experiment=experiment,
+    model=model,
+    train_data_loader=train_data_loader,
+    valid_data_loader=validate_data_loader,
+    cuda_id=1
+)
 size_list = [1, 3, 5, 7]
 incremental_adversarial_trainer.train(10, 20, 20)
 for size in size_list:
@@ -52,10 +62,20 @@ for size in size_list:
         transforms.ToTensor(),
         transforms.Normalize((0.5, ), (0.5, )),
     ])
-    mnist_dataset = DAMNIST(root='./data/', download=True, source_transform=source_transform, target_transform=target_transform)
+    mnist_dataset = DAMNIST(
+        root='./data/',
+        download=True,
+        source_transform=source_transform,
+        target_transform=target_transform)
     data_loader = data.DataLoader(mnist_dataset, batch_size=16, shuffle=True)
-    validate_mnist_dataset = DAMNIST(root='./data/', train=False, download=True, source_transform=source_transform, target_transform=target_transform)
-    validate_data_loader = data.DataLoader(validate_mnist_dataset, batch_size=16, shuffle=True)
+    validate_mnist_dataset = DAMNIST(
+        root='./data/',
+        train=False,
+        download=True,
+        source_transform=source_transform,
+        target_transform=target_transform)
+    validate_data_loader = data.DataLoader(
+        validate_mnist_dataset, batch_size=16, shuffle=True)
     incremental_adversarial_trainer.set_loader(data_loader)
     incremental_adversarial_trainer.validate_set_loader(validate_data_loader)
     incremental_adversarial_trainer.adaptation(30)
