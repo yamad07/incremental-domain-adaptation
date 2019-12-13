@@ -15,7 +15,7 @@ class SDMG(nn.Module):
     def forward(self, x):
         h = F.leaky_relu(self.fc1(x))
         h = F.leaky_relu(self.fc2(h))
-        h = F.tanh(self.dropout(self.fc4(h)))
+        h = torch.tanh(self.dropout(self.fc4(h)))
         return h
 
 

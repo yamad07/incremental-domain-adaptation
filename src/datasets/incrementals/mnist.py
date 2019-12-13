@@ -16,7 +16,7 @@ class IDAMNIST(MNIST):
     test_file = 'test.pt'
 
     def __init__(self, root, train=True, source_transform=None, target_transform=None, download=False):
-        super(DAMNIST, self).__init__(root=root, train=train, download=download)
+        super(IDAMNIST, self).__init__(root=root, train=train, download=download)
         self.source_transform = source_transform
         self.target_transform = target_transform
 

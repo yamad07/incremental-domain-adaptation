@@ -12,6 +12,7 @@ class IncrementalAdversarialModel(nn.Module):
             source_encoder,
             target_encoder,
             ):
+        super(IncrementalAdversarialModel, self).__init__()
         self.classifier = classifier
         self.domain_discriminator = domain_discriminator
         self.source_generator = source_generator

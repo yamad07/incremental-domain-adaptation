@@ -1,3 +1,8 @@
+import torch
+import torch.optim as optim
+import torch.nn as nn
+import torch.nn.functional as F
+
 class IncrementalAdversarialTrainer:
 
     def __init__(self,
@@ -12,21 +17,22 @@ class IncrementalAdversarialTrainer:
 
         self.train_data_loader = train_data_loader
         self.validate_data_loader = valid_data_loader
-        self.device = torch.device("cuda:{}".format(cuda_id) if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:{}".format(int(cuda_id)) if torch.cuda.is_available() else "cpu")
 
-        self.classifier_optim = optim.SGD(self.classifier.parameters(), lr=1e-3)
-        self.source_optim = optim.Adam(self.source_encoder.parameters(), lr=1e-3)
-        self.target_optim = optim.Adam(self.target_encoder.parameters(), lr=1e-4)
-        self.discrim_optim = optim.Adam(self.domain_discriminator.parameters(), lr=1e-4)
-        self.source_domain_discriminator_optim = optim.Adam(self.source_domain_discriminator.parameters(), lr=1e-4)
-        self.source_domain_generator_optim = optim.Adam(self.source_generator.parameters(), lr=1e-4)
+        self.classifier_optim = optim.SGD(self.model.classifier.parameters(), lr=1e-3)
+        self.source_optim = optim.Adam(self.model.source_encoder.parameters(), lr=1e-3)
+        self.target_optim = optim.Adam(self.model.target_encoder.parameters(), lr=1e-4)
+        self.discrim_optim = optim.Adam(self.model.domain_discriminator.parameters(), lr=1e-4)
+        self.source_domain_discriminator_optim = optim.Adam(self.model.source_discriminator.parameters(), lr=1e-4)
+        self.source_domain_generator_optim = optim.Adam(self.model.source_generator.parameters(), lr=1e-4)
 
 
     def train(self, s_epoch, sm_epoch, da_epoch):
 
+        self.model.to(self.device)
         self.model.train()
         for e in range(s_epoch):
-            for i, (source_data, source_labels, target_data) in enumerate(self.data_loader):
+            for i, (source_data, source_labels, target_data) in enumerate(self.train_data_loader):
                 source_data = source_data.to(self.device)
                 source_labels = source_labels.to(self.device)
                 target_data = target_data.to(self.device)
@@ -38,7 +44,7 @@ class IncrementalAdversarialTrainer:
 
 
         for e in range(sm_epoch):
-            for i, (source_data, source_labels, target_data) in enumerate(self.data_loader):
+            for i, (source_data, source_labels, target_data) in enumerate(self.train_data_loader):
                 source_data = source_data.to(self.device)
                 discriminator_loss, generator_loss = self._train_source_modeling(source_data)
                 self.experiment.log_metric('D(x)', discriminator_loss)
@@ -51,6 +57,30 @@ class IncrementalAdversarialTrainer:
         self.model.source_generator.eval()
 
         for e in range(epoch):
+
+            for i, (source_data, source_labels, target_data) in enumerate(self.train_data_loader):
+                source_data = source_data.to(self.device)
+                source_labels = source_labels.to(self.device)
+                target_data = target_data.to(self.device)
+
+                discriminator_loss = self._ad_train_discriminator(source_data, target_data)
+                target_adversarial_loss = self._ad_train_target_encoder(target_data)
+
+                target_features = self.target_encoder(target_data)
+                target_preds = self.classifier(target_features)
+                self.experiment.log_metric('discriminator_loss', discriminator_loss)
+                self.experiment.log_metric('target_adversarial_loss', target_adversarial_loss)
+
+            target_valid_accuracy = self.validate(e)
+            self.experiment.log_current_epoch(e)
+            self.experiment.log_metric('valid_target_accuracy', target_valid_accuracy)
+
+            print("Epoch: {0} D(x): {1} D(G(x)): {2} target_accuracy: {3}".format(
+                e, discriminator_loss, target_adversarial_loss, target_valid_accuracy))
+
+    def adaptation(self, da_epoch):
+
+        for e in range(da_epoch):
 
             for i, (source_data, source_labels, target_data) in enumerate(self.data_loader):
                 source_data = source_data.to(self.device)
@@ -72,7 +102,8 @@ class IncrementalAdversarialTrainer:
             print("Epoch: {0} D(x): {1} D(G(x)): {2} target_accuracy: {3}".format(
                 e, discriminator_loss, target_adversarial_loss, target_valid_accuracy))
 
-    def validate(self, e):
+
+    def validate(self):
         accuracy = 0
         for i, (target_data, target_labels) in enumerate(self.validate_data_loader):
             target_data = target_data.to(self.device)
@@ -88,6 +119,12 @@ class IncrementalAdversarialTrainer:
 
         accuracy /= len(self.validate_data_loader)
         return accuracy
+
+    def set_data_loader(self, data_loader):
+        self.data_loader = data_loader
+
+    def set_validate_data_loader(self, validate_data_loader):
+        self.validate_data_loader = validate_data_loader
 
     def _train_source(self, source_data, source_labels):
         # init
