@@ -82,8 +82,8 @@ class IncrementalAdversarialTrainer:
                 target_adversarial_loss = self._ad_train_target_encoder(
                     target_data)
 
-                target_features = self.target_encoder(target_data)
-                target_preds = self.classifier(target_features)
+                target_features = self.model.target_encoder(target_data)
+                target_preds = self.model.classifier(target_features)
                 self.experiment.log_metric(
                     'discriminator_loss', discriminator_loss.item())
                 self.experiment.log_metric(
@@ -113,8 +113,8 @@ class IncrementalAdversarialTrainer:
                 target_adversarial_loss = self._ad_train_target_encoder(
                     target_data)
 
-                target_features = self.target_encoder(target_data)
-                target_preds = self.classifier(target_features)
+                target_features = self.model.target_encoder(target_data)
+                target_preds = self.model.classifier(target_features)
                 self.experiment.log_metric(
                     'discriminator_loss', discriminator_loss.item())
                 self.experiment.log_metric(
@@ -139,8 +139,8 @@ class IncrementalAdversarialTrainer:
             self.model.target_encoder.eval()
             self.model.classifier.eval()
 
-            target_features = self.target_encoder(target_data)
-            target_preds = self.classifier(target_features)
+            target_features = self.model.target_encoder(target_data)
+            target_preds = self.model.classifier(target_features)
             _, target_preds = torch.max(target_preds, 1)
             accuracy += 100 * \
                 (target_preds == target_labels).sum().item() / target_preds.size()[0]
