@@ -41,6 +41,9 @@ class IDAMNIST(MNIST):
             self.target_data = self.test_data
             self.target_labels = self.test_labels
 
+    def set_target_transform(self, target_transform):
+        self.target_transform = target_transforms
+
     def __getitem__(self, idx):
         if self.train:
             source_img = self.source_data[idx]

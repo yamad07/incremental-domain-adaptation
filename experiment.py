@@ -1,10 +1,20 @@
 from comet_ml import Experiment
-from src.models.incrementals.adversarial import IncrementalAdversarialModel
-from src.trainers.incrementals.adversarial import IncrementalAdversarialTrainer
-from src.datasets.incrementals.mnist import IDAMNIST
-from src.models.incrementals.components import Classifier, DomainDiscriminator, RandomizedMultilinear, SDMG, SDMD, SourceEncoder, TargetEncoder
 import torch.utils.data as data
 from torchvision import transforms
+
+from src.trainers.incrementals.components.adversarial import IncrementalAdversarialTrainer
+from src.trainers.incrementals.mnist import IncrementalMnistTrainer
+from src.datasets.incrementals.mnist import IDAMNIST
+from src.models.incrementals.components import (
+        Classifier,
+        DomainDiscriminator,
+        RandomizedMultilinear,
+        SDMG,
+        SDMD,
+        SourceEncoder,
+        TargetEncoder
+        )
+from src.models.incrementals.adversarial import IncrementalAdversarialModel
 
 
 experiment = Experiment(api_key="laHAJPKUmrD2TV2dIaOWFYGkQ",
@@ -46,36 +56,18 @@ model = IncrementalAdversarialModel(
     target_encoder=TargetEncoder(),
 )
 
-incremental_adversarial_trainer = IncrementalAdversarialTrainer(
+incremental_adversarial_trainer_component = IncrementalAdversarialTrainer(
     experiment=experiment,
     model=model,
     train_data_loader=train_data_loader,
     valid_data_loader=validate_data_loader,
     cuda_id=1
 )
-size_list = [1, 3, 5, 7]
-incremental_adversarial_trainer.train(10, 20, 20)
-for size in size_list:
-    target_transform = transforms.Compose([
-        transforms.Resize((int(28 - size * 2), 28)),
-        transforms.Pad((0, size, 0, size)),
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, ), (0.5, )),
-    ])
-    mnist_dataset = DAMNIST(
-        root='./data/',
-        download=True,
-        source_transform=source_transform,
-        target_transform=target_transform)
-    data_loader = data.DataLoader(mnist_dataset, batch_size=16, shuffle=True)
-    validate_mnist_dataset = DAMNIST(
-        root='./data/',
-        train=False,
-        download=True,
-        source_transform=source_transform,
-        target_transform=target_transform)
-    validate_data_loader = data.DataLoader(
-        validate_mnist_dataset, batch_size=16, shuffle=True)
-    incremental_adversarial_trainer.set_loader(data_loader)
-    incremental_adversarial_trainer.validate_set_loader(validate_data_loader)
-    incremental_adversarial_trainer.adaptation(30)
+
+trainer = IncrementalMnistTrainer(
+        incremental_trainer_component=incremental_adversarial_trainer_component,
+        size_list=[1, 3, 5, 7],
+        batch_size=16,
+        )
+
+trainer.train(1, 1, 1)

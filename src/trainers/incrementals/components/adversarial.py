@@ -57,20 +57,19 @@ class IncrementalAdversarialTrainer:
             for i, (source_data, source_labels, target_data) in enumerate(
                     self.train_data_loader):
                 source_data = source_data.to(self.device)
-                discriminator_loss, generator_loss = self._train_source_modeling(
-                    source_data)
-                self.experiment.log_metric('D(x)', discriminator_loss)
-                self.experiment.log_metric('D(G(x))', generator_loss)
+                discriminator_loss, generator_loss = self._train_source_modeling(source_data)
+                self.experiment.log_metric('D(x)', discriminator_loss.item())
+                self.experiment.log_metric('D(G(x))', generator_loss.item())
 
             self.experiment.log_current_epoch(e)
             print("Epoch: {0} D(x): {1} D(G(x)): {2}".format(
-                e, discriminator_loss, generator_loss))
+                e, discriminator_loss.item(), generator_loss.item()))
 
         self.model.target_encoder.load_state_dict(
             self.model.source_encoder.state_dict())
         self.model.source_generator.eval()
 
-        for e in range(epoch):
+        for e in range(da_epoch):
 
             for i, (source_data, source_labels, target_data) in enumerate(
                     self.train_data_loader):
@@ -86,9 +85,9 @@ class IncrementalAdversarialTrainer:
                 target_features = self.target_encoder(target_data)
                 target_preds = self.classifier(target_features)
                 self.experiment.log_metric(
-                    'discriminator_loss', discriminator_loss)
+                    'discriminator_loss', discriminator_loss.item())
                 self.experiment.log_metric(
-                    'target_adversarial_loss', target_adversarial_loss)
+                    'target_adversarial_loss', target_adversarial_loss.item())
 
             target_valid_accuracy = self.validate(e)
             self.experiment.log_current_epoch(e)
@@ -97,7 +96,7 @@ class IncrementalAdversarialTrainer:
                 target_valid_accuracy)
 
             print("Epoch: {0} D(x): {1} D(G(x)): {2} target_accuracy: {3}".format(
-                e, discriminator_loss, target_adversarial_loss, target_valid_accuracy))
+                e, discriminator_loss.item(), target_adversarial_loss.item(), target_valid_accuracy))
 
     def adaptation(self, da_epoch):
 
@@ -117,9 +116,9 @@ class IncrementalAdversarialTrainer:
                 target_features = self.target_encoder(target_data)
                 target_preds = self.classifier(target_features)
                 self.experiment.log_metric(
-                    'discriminator_loss', discriminator_loss)
+                    'discriminator_loss', discriminator_loss.item())
                 self.experiment.log_metric(
-                    'target_adversarial_loss', target_adversarial_loss)
+                    'target_adversarial_loss', target_adversarial_loss.item())
 
             target_valid_accuracy = self.validate(e)
             self.experiment.log_current_epoch(e)
@@ -128,7 +127,7 @@ class IncrementalAdversarialTrainer:
                 target_valid_accuracy)
 
             print("Epoch: {0} D(x): {1} D(G(x)): {2} target_accuracy: {3}".format(
-                e, discriminator_loss, target_adversarial_loss, target_valid_accuracy))
+                e, discriminator_loss.item(), target_adversarial_loss.item(), target_valid_accuracy))
 
     def validate(self):
         accuracy = 0
@@ -183,9 +182,9 @@ class IncrementalAdversarialTrainer:
 
         source_fake_features = self.model.source_generator(z)
 
-        true_preds = self.model.source_domain_discriminator(
+        true_preds = self.model.source_discriminator(
             source_features.detach())
-        fake_preds = self.model.source_domain_discriminator(
+        fake_preds = self.model.source_discriminator(
             source_fake_features.detach())
         labels = torch.cat(
             (torch.ones(16).long().to(
@@ -201,8 +200,8 @@ class IncrementalAdversarialTrainer:
         self.source_domain_discriminator_optim.zero_grad()
 
         z = torch.randn(16, 100).to(self.device).detach()
-        source_fake_features = self.source_generator(z)
-        fake_preds = self.source_domain_discriminator(source_fake_features)
+        source_fake_features = self.model.source_generator(z)
+        fake_preds = self.model.source_discriminator(source_fake_features)
         generator_loss = - F.nll_loss(fake_preds,
                                       torch.zeros(16).long().to(self.device))
 
