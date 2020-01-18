@@ -11,9 +11,15 @@ from src.trainers.incrementals.components.conditional_adversarial import (
         ICADATrainerComponent,
         ICASMTrainerComponent,
         )
+from src.trainers import (
+        DATrainerComponent,
+        SMTrainerComponent,
+        SegCDATrainerComponent,
+        SegCSMTrainerComponent
+        )
 from src.trainers.incrementals.mnist import IncrementalMnistTrainer
 from src.trainers.incrementals.cityscapes import IncrementalCityscapesTrainer
-from src.datasets.incrementals.mnist import IDAMNIST
+from src.datasets.cityscapes import CityscapesDataset
 from src.models.incrementals.components import (
         DANNClassifier,
         DANNEncoder,
@@ -27,6 +33,7 @@ from src.models.incrementals.components import (
         SourceDiscriminator,
         Encoder,
         VGGEncoder,
+        ResNet50Encoder,
         Decoder,
         )
 from src.models.incrementals.adversarial import IncrementalAdversarialModel
@@ -48,61 +55,59 @@ target_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.5, ), (0.25, )),
 ])
-mnist_dataset = IDAMNIST(
-    root='./data/',
-    download=True,
-    source_transform=source_transform,
-    target_transform=target_transform)
-train_data_loader = data.DataLoader(mnist_dataset, batch_size=16, shuffle=True)
+train_cityscapes_dataset = CityscapesDataset(
+        cityscapes_data_path='/data2/yamad/leftImg8bit_trainvaltest',
+        cityscapes_meta_path='/data2/yamad/cityscapes/gtFine_trainvaltest/gtFine',
+        train_city_list = ["zurich/", "weimar/", "ulm/"]
+        )
 
-validate_mnist_dataset = IDAMNIST(
-    root='./data/',
-    train=False,
-    download=True,
-    source_transform=source_transform,
-    target_transform=target_transform)
-validate_data_loader = data.DataLoader(
-    validate_mnist_dataset, batch_size=16, shuffle=True)
+train_data_loader = data.DataLoader(train_cityscapes_dataset, batch_size=16, shuffle=True)
 
-# model = IncrementalAdversarialModel(
-#     classifier=DANNClassifier(),
-#     domain_discriminator=DANNDomainDiscriminator(),
-#     source_generator=DANNSourceGenerator(z_dim=128),
-#     source_discriminator=DANNSourceDiscriminator(),
-#     source_encoder=DANNEncoder(),
-#     target_encoder=DANNEncoder(),
+val_cityscapes_dataset = CityscapesDataset(
+        cityscapes_data_path='/data2/yamad/leftImg8bit_trainvaltest',
+        cityscapes_meta_path='/data2/yamad/cityscapes/gtFine_trainvaltest/gtFine',
+        train_city_list = ["zurich/"]
+        )
+val_data_loader = data.DataLoader(
+    val_cityscapes_dataset, batch_size=16, shuffle=True)
+
+# VGG
+num_features = 32768
+# model = IncrementalConditionalAdversarialModel(
+#     classifier=Decoder(34, 512, 128),
+#     domain_discriminator=DANNDomainDiscriminator(num_features),
+#     source_generator=DANNSourceGenerator(z_dim=128, num_features=num_features),
+#     source_discriminator=DANNSourceDiscriminator(num_features),
+#     source_encoder=VGGEncoder(),
+#     target_encoder=VGGEncoder(),
+#     n_classes=8388608,
+#     n_features=32768,
+#     n_random_features=4000,
 # )
-model = IncrementalConditionalAdversarialModel(
-    # classifier=DANNClassifier(),
-    classifier=Decoder(19),
-    domain_discriminator=DANNDomainDiscriminator(4000),
-    source_generator=CDANNSourceGenerator(z_dim=128, n_classes=19),
-    source_discriminator=DANNSourceDiscriminator(4000),
-    # source_encoder=DANNEncoder(),
-    # target_encoder=DANNEncoder(),
+model = IncrementalAdversarialModel(
+    classifier=Decoder(34, 512, 64),
+    domain_discriminator=DANNDomainDiscriminator(num_features),
+    source_generator=DANNSourceGenerator(z_dim=128, num_features=num_features),
+    source_discriminator=DANNSourceDiscriminator(num_features),
     source_encoder=VGGEncoder(),
     target_encoder=VGGEncoder(),
-    n_classes=10,
-    n_features=1568,
-    n_random_features=4000,
 )
-
-
 trainer = IncrementalCityscapesTrainer(
         model=model,
         trainer_component_list=[
             # IASVTrainerComponent(),
-            ICASMTrainerComponent(),
-            ICADATrainerComponent(),
+            # SegCSMTrainerComponent(),
+            # SegCDATrainerComponent(),
+            SMTrainerComponent(),
+            DATrainerComponent(),
         ],
-        epoch_component_list=[50, 10],
+        epoch_component_list=[1, 10],
         experiment=experiment,
         train_data_loader=train_data_loader,
-        valid_data_loader=validate_data_loader,
+        valid_data_loader=val_data_loader,
         cuda_id=0,
-        size_list=[6, 7, 8],
         analyzer_list=[
-            TargetImageSaver(),
+            # TargetImageSaver(),
             ]
         )
 trainer.train()

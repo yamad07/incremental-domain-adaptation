@@ -7,6 +7,12 @@ from src.trainers.incrementals.components.adversarials import (
         IASMTrainerComponent,
         IASVTrainerComponent
         )
+from src.trainers import (
+        DATrainerComponent,
+        SMTrainerComponent,
+        CDATrainerComponent,
+        CSMTrainerComponent
+        )
 from src.trainers.incrementals.components.conditional_adversarial import (
         ICADATrainerComponent,
         ICASMTrainerComponent,
@@ -51,56 +57,57 @@ target_transform = transforms.Compose([
 mnist_dataset = IDAMNIST(
     root='./data/',
     download=True,
-    source_transform=source_transform,
-    target_transform=target_transform)
-train_data_loader = data.DataLoader(mnist_dataset, batch_size=16, shuffle=True)
+    )
+train_data_loader = data.DataLoader(mnist_dataset, batch_size=64, shuffle=True)
 
 validate_mnist_dataset = IDAMNIST(
     root='./data/',
-    train=False,
+    train=True,
     download=True,
-    source_transform=source_transform,
-    target_transform=target_transform)
+    )
 validate_data_loader = data.DataLoader(
-    validate_mnist_dataset, batch_size=16, shuffle=True)
+    validate_mnist_dataset, batch_size=64, shuffle=True)
 
-# model = IncrementalAdversarialModel(
-#     classifier=DANNClassifier(),
-#     domain_discriminator=DANNDomainDiscriminator(),
-#     source_generator=DANNSourceGenerator(z_dim=128),
-#     source_discriminator=DANNSourceDiscriminator(),
-#     source_encoder=DANNEncoder(),
-#     target_encoder=DANNEncoder(),
-# )
 model = IncrementalConditionalAdversarialModel(
-    # classifier=DANNClassifier(),
-    classifier=Decoder(19),
+    classifier=DANNClassifier(),
     domain_discriminator=DANNDomainDiscriminator(4000),
-    source_generator=CDANNSourceGenerator(z_dim=128, n_classes=19),
+    source_generator=CDANNSourceGenerator(z_dim=128, n_classes=10),
     source_discriminator=DANNSourceDiscriminator(4000),
-    # source_encoder=DANNEncoder(),
-    # target_encoder=DANNEncoder(),
-    source_encoder=VGGEncoder(),
-    target_encoder=VGGEncoder(),
+    source_encoder=DANNEncoder(),
+    target_encoder=DANNEncoder(),
     n_classes=10,
     n_features=1568,
     n_random_features=4000,
 )
+# model = IncrementalConditionalAdversarialModel(
+#     # classifier=DANNClassifier(),
+#     classifier=Decoder(19),
+#     domain_discriminator=DANNDomainDiscriminator(4000),
+#     source_generator=CDANNSourceGenerator(z_dim=128, n_classes=19),
+#     source_discriminator=DANNSourceDiscriminator(4000),
+#     # source_encoder=DANNEncoder(),
+#     # target_encoder=DANNEncoder(),
+#     source_encoder=VGGEncoder(),
+#     target_encoder=VGGEncoder(),
+#     n_classes=10,
+#     n_features=1568,
+#     n_random_features=4000,
+# )
 
 
-trainer = IncrementalCityscapesTrainer(
+trainer = IncrementalMnistTrainer(
         model=model,
         trainer_component_list=[
             # IASVTrainerComponent(),
-            ICASMTrainerComponent(),
-            ICADATrainerComponent(),
+            CSMTrainerComponent(),
+            CDATrainerComponent(),
         ],
-        epoch_component_list=[50, 10],
+        epoch_component_list=[300, 300],
         experiment=experiment,
         train_data_loader=train_data_loader,
         valid_data_loader=validate_data_loader,
-        cuda_id=0,
-        size_list=[6, 7, 8],
+        cuda_id=1,
+        size_list=[4, 5, 6, 7, 8],
         analyzer_list=[
             TargetImageSaver(),
             ]

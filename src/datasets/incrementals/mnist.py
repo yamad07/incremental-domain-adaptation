@@ -1,4 +1,5 @@
 from torchvision.datasets.mnist import MNIST
+from torchvision import transforms
 import random
 from PIL import Image
 import torch
@@ -20,8 +21,6 @@ class IDAMNIST(MNIST):
             self,
             root,
             train=True,
-            source_transform=None,
-            target_transform=None,
             download=False):
         super(
             IDAMNIST,
@@ -29,41 +28,35 @@ class IDAMNIST(MNIST):
             root=root,
             train=train,
             download=download)
-        self.source_transform = source_transform
-        self.target_transform = target_transform
+        del self.train
+        self.source_data = self.train_data
+        self.source_labels = self.train_labels
+        self.set_digit_height(0)
+        self.__train = train
 
-        if self.train:
-            self.source_data = self.train_data
-            self.source_labels = self.train_labels
-            self.target_data = self.source_data.clone()
-            random.shuffle(self.target_data)
-        else:
-            self.target_data = self.test_data
-            self.target_labels = self.test_labels
-
-    def set_target_transform(self, target_transform):
-        self.target_transform = target_transforms
+    def set_digit_height(self, digit_height):
+        self.digit_height = digit_height
+        self.transform = transforms.Compose([
+                transforms.Resize((int(28 - digit_height * 2), 28)),
+                transforms.Pad((0, digit_height, 0, digit_height)),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, ), (0.5, )),
+            ])
 
     def __getitem__(self, idx):
-        if self.train:
-            source_img = self.source_data[idx]
-            source_label = self.source_labels[idx]
-            target_img = self.target_data[idx]
+        source_img = self.source_data[idx]
+        source_label = self.source_labels[idx]
 
-            source_img = Image.fromarray(source_img.numpy(), mode='L')
-            target_img = Image.fromarray(target_img.numpy(), mode='L')
+        source_img = Image.fromarray(source_img.numpy(), mode='L')
 
-            if self.source_transform is not None:
-                source_img = self.source_transform(source_img)
+        return self.transform(source_img), source_label
 
-            if self.target_transform is not None:
-                target_img = self.target_transform(target_img)
+    def train(self):
+        self.__train = True
 
-            return source_img, source_label, target_img
-        else:
-            target_img = self.target_data[idx]
-            target_img = Image.fromarray(target_img.numpy(), mode='L')
-            target_label = self.target_labels[idx]
-            if self.target_transform is not None:
-                target_img = self.target_transform(target_img)
-            return target_img, target_label
+    def eval(self):
+        self.__train = False
+
+    @property
+    def domain_name(self):
+        return 'height_{}'.format(str(28 - self.digit_height * 2))
