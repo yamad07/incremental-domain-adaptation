@@ -14,9 +14,6 @@ class SourceGeneratorAccuracyValidator:
             for i, (_, source_labels, _) in enumerate(trainer.train_data_loader):
                 source_labels = source_labels.to(trainer.device)
 
-                trainer.model.source_generator.eval()
-                trainer.model.classifier.eval()
-
                 z = torch.randn(source_labels.size(0), trainer.model.source_generator.z_dim)
                 z = z.to(trainer.device)
 

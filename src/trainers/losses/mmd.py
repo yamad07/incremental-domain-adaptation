@@ -1,10 +1,9 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from .loss_component import LossComponent
-from ..output import Output
 
 
-class RBFMMDLoss(LossComponent):
+class RBFMMDLoss(nn.Module):
 
     name = 'rbf_mmd_loss'
 
@@ -17,8 +16,10 @@ class RBFMMDLoss(LossComponent):
             source_features,
             target_features,
         ):
-        b, c, w, h = content_features.size()
-
+        bs = source_features.size(0)
+        bt = target_features.size(0)
+        source_features = source_features.view(bs, -1)
+        target_features = target_features.view(bt, -1)
         k_xx, k_xy, k_yy = self._rbf_kernel(source_features, target_features)
         mmd2 = self._mmd2(k_xx, k_xy, k_yy)
         return mmd2

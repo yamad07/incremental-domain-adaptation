@@ -24,7 +24,7 @@ class SourceGenerator(nn.Module):
     def forward(self, x):
         h = self.fc1(x)
         h = self.fc2(h)
-        h = torch.tanh(self.fc3(h))
+        h = F.relu(self.fc3(h))
         return h
 
 

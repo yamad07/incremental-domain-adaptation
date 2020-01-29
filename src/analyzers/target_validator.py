@@ -18,14 +18,12 @@ class TargetEncoderAccuracyValidator:
                 target_data = target_data.to(trainer.device)
                 target_labels = target_labels.to(trainer.device)
 
+                batch_size = target_data.size(0)
                 target_features = trainer.model.target_encoder(target_data)
-                target_preds = trainer.model.classifier(target_features).detach()
+                target_preds = trainer.model.classifier(target_features.view(batch_size, -1)).detach()
 
                 target_preds_batch.append(target_preds.cpu())
                 target_labels_batch.append(target_labels.cpu())
-
-                trainer.model.target_encoder.zero_grad()
-                trainer.model.classifier.zero_grad()
 
         target_preds_batch = torch.cat(target_preds_batch, dim=0)
         target_labels_batch = torch.cat(target_labels_batch, dim=0)

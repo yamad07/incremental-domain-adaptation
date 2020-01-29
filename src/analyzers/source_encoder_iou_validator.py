@@ -1,8 +1,9 @@
 import torch
 from ..trainers.metrics import Accuracy
+from sklearn.metrics import confusion_matrix
 
 
-class SourceEncoderAccuracyValidator:
+class SourceEncoderIoUAccuracyValidator:
 
     def __init__(self, analyzer_dir='results'):
         self.accuracy = Accuracy()
@@ -25,12 +26,16 @@ class SourceEncoderAccuracyValidator:
                 target_preds_batch.append(target_preds.cpu())
                 target_labels_batch.append(target_labels.cpu())
 
-        target_preds_batch = torch.cat(target_preds_batch, dim=0)
-        target_labels_batch = torch.cat(target_labels_batch, dim=0)
+        target_preds_batch = torch.cat(target_preds_batch, dim=0).max(1)[1].view(-1).numpy()
+        target_labels_batch = torch.cat(target_labels_batch, dim=0).view(-1).numpy()
 
-        target_accuracy = self.accuracy(target_preds_batch, target_labels_batch)
-        trainer.experiment.log_metric('{}_valid_source_encoder_target_accuracy'.format(trainer.validate_data_loader.dataset.domain_name), target_accuracy)
+        conf_matrix = confusion_matrix(target_preds_batch, target_labels_batch)
+        tp = conf_matrix[0][0]
+        fp = conf_matrix[0][1]
+        fn = conf_matrix[1][0]
+        iou = tp / (tp + fp + fn)
+        trainer.experiment.log_metric('{}_valid_source_encoder_iou'.format(trainer.validate_data_loader.dataset.domain_name), iou)
         trainer.model.source_encoder.train()
         trainer.model.classifier.train()
-        return target_accuracy
+        return iou
 

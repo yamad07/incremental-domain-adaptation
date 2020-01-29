@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 class CDANNSourceGenerator(nn.Module):
 
-    def __init__(self, z_dim, n_classes):
+    def __init__(self, z_dim, n_features, n_classes):
         super(CDANNSourceGenerator, self).__init__()
         self.z_dim = z_dim
         self.fc1 = nn.Sequential(
@@ -19,7 +19,7 @@ class CDANNSourceGenerator(nn.Module):
                 nn.LeakyReLU(inplace=True),
                 nn.BatchNorm1d(512),
                 )
-        self.fc3 = nn.Linear(512, 1568)
+        self.fc3 = nn.Linear(512, n_features)
 
     def forward(self, x, labels):
         batch_size = x.size(0)

@@ -11,7 +11,8 @@ from src.trainers import (
         DATrainerComponent,
         SMTrainerComponent,
         CDATrainerComponent,
-        CSMTrainerComponent
+        CSMTrainerComponent,
+        AdaINDATrainerComponent,
         )
 from src.trainers.incrementals.components.conditional_adversarial import (
         ICADATrainerComponent,
@@ -19,14 +20,19 @@ from src.trainers.incrementals.components.conditional_adversarial import (
         )
 from src.trainers.incrementals.mnist import IncrementalMnistTrainer
 from src.trainers.incrementals.cityscapes import IncrementalCityscapesTrainer
-from src.datasets import IDAMNIST
+from src.datasets import (
+        IDAMNIST,
+        IDASVHN
+        )
 from src.models.incrementals.components import (
         DANNClassifier,
         DANNEncoder,
+        AdaBNClassifier,
         DANNSourceGenerator,
         CDANNSourceGenerator,
         DANNSourceDiscriminator,
         DANNDomainDiscriminator,
+        DANNConvSourceDiscriminator,
         Classifier,
         DomainDiscriminator,
         SourceGenerator,
@@ -54,19 +60,18 @@ target_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.5, ), (0.25, )),
 ])
+svhn_dataset = IDASVHN(
+    root='./data/',
+    download=True,
+    )
+train_data_loader = data.DataLoader(svhn_dataset, batch_size=64, shuffle=True)
+
 mnist_dataset = IDAMNIST(
     root='./data/',
     download=True,
     )
-train_data_loader = data.DataLoader(mnist_dataset, batch_size=256, shuffle=True)
-
-validate_mnist_dataset = IDAMNIST(
-    root='./data/',
-    train=True,
-    download=True,
-    )
 validate_data_loader = data.DataLoader(
-    validate_mnist_dataset, batch_size=256, shuffle=True)
+    mnist_dataset, batch_size=64, shuffle=True)
 
 model = IncrementalAdversarialModel(
     classifier=DANNClassifier(576),
@@ -84,13 +89,12 @@ trainer = IncrementalMnistTrainer(
             SMTrainerComponent(),
             DATrainerComponent(),
         ],
-        epoch_component_list=[100, 100],
+        epoch_component_list=[100, 30],
         experiment=experiment,
         train_data_loader=train_data_loader,
         valid_data_loader=validate_data_loader,
         cuda_id=3,
         size_list=[0, 2, 3, 4, 5, 6, 7, 8],
-        lr=1e-3,
         analyzer_list=[
             TargetImageSaver(),
             ]

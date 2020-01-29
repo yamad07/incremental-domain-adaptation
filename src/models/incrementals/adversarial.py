@@ -11,6 +11,7 @@ class IncrementalAdversarialModel(nn.Module):
             source_discriminator,
             source_encoder,
             target_encoder,
+            n_features
     ):
         super(IncrementalAdversarialModel, self).__init__()
         self.classifier = classifier
@@ -19,6 +20,7 @@ class IncrementalAdversarialModel(nn.Module):
         self.source_discriminator = source_discriminator
         self.source_encoder = source_encoder
         self.target_encoder = target_encoder
+        self.n_features = n_features
 
     def forward(self, target_data):
 

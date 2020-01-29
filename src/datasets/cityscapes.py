@@ -12,6 +12,7 @@ dirs = ["jena/", "zurich/", "weimar/", "ulm/", "tubingen/", "stuttgart/",
         "leverkusen", "mainz", "munich", "frankfurt/", "munster/", "lindau/"]
 
 class CityscapesDataset(Dataset):
+
     def __init__(
             self,
             cityscapes_data_path,
@@ -19,7 +20,7 @@ class CityscapesDataset(Dataset):
             train_city_list=["jena/"],
             train=True,
             ):
-        self.img_dir = os.path.join(cityscapes_data_path, "leftImg8bit", "train")
+        self.img_dir = os.path.join(cityscapes_data_path, "train")
         self.label_dir = os.path.join(cityscapes_meta_path, "train")
 
         self.img_h = 1024
@@ -34,8 +35,7 @@ class CityscapesDataset(Dataset):
     def set_cities(self, train_city_list):
         self.train_city_list = train_city_list
         self.examples = []
-        dirs = self.train_city_list
-        for train_dir in dirs:
+        for train_dir in self.train_city_list:
 
             train_img_dir_path = os.path.join(self.img_dir, train_dir)
 
@@ -46,12 +46,15 @@ class CityscapesDataset(Dataset):
                 img_path = os.path.join(train_img_dir_path, file_name)
 
                 label_img_path = os.path.join(self.label_dir, train_dir, img_id + "_gtFine_labelIds.png")
+                if os.path.exists(label_img_path) and os.path.exists(img_path):
 
-                example = {}
-                example["img_path"] = img_path
-                example["label_img_path"] = label_img_path
-                example["img_id"] = img_id
-                self.examples.append(example)
+                    example = {}
+                    example["img_path"] = img_path
+                    example["label_img_path"] = label_img_path
+                    example["img_id"] = img_id
+                    self.examples.append(example)
+                else:
+                    print(img_id)
 
     def __getitem__(self, index):
         example = self.examples[index]

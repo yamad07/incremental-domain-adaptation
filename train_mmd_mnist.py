@@ -11,7 +11,8 @@ from src.trainers import (
         DATrainerComponent,
         SMTrainerComponent,
         CDATrainerComponent,
-        CSMTrainerComponent
+        CSMTrainerComponent,
+        MMDTrainerComponent
         )
 from src.trainers.incrementals.components.conditional_adversarial import (
         ICADATrainerComponent,
@@ -58,7 +59,7 @@ mnist_dataset = IDAMNIST(
     root='./data/',
     download=True,
     )
-train_data_loader = data.DataLoader(mnist_dataset, batch_size=256, shuffle=True)
+train_data_loader = data.DataLoader(mnist_dataset, batch_size=64, shuffle=True)
 
 validate_mnist_dataset = IDAMNIST(
     root='./data/',
@@ -66,7 +67,7 @@ validate_mnist_dataset = IDAMNIST(
     download=True,
     )
 validate_data_loader = data.DataLoader(
-    validate_mnist_dataset, batch_size=256, shuffle=True)
+    validate_mnist_dataset, batch_size=64, shuffle=True)
 
 model = IncrementalAdversarialModel(
     classifier=DANNClassifier(576),
@@ -82,15 +83,14 @@ trainer = IncrementalMnistTrainer(
         model=model,
         trainer_component_list=[
             SMTrainerComponent(),
-            DATrainerComponent(),
+            MMDTrainerComponent(),
         ],
-        epoch_component_list=[100, 100],
+        epoch_component_list=[50, 10],
         experiment=experiment,
         train_data_loader=train_data_loader,
         valid_data_loader=validate_data_loader,
         cuda_id=3,
         size_list=[0, 2, 3, 4, 5, 6, 7, 8],
-        lr=1e-3,
         analyzer_list=[
             TargetImageSaver(),
             ]

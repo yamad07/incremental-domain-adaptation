@@ -1,8 +1,9 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-from ..analyzers import GeneratedSourceFeatureVisualizer
+from ..analyzers import GeneratedConditionalSourceFeatureVisualizer
 from .metrics import Accuracy
+from .losses.inv_focal_loss import InverseFocalLoss
 
 
 class CSMTrainerComponent:
@@ -12,23 +13,24 @@ class CSMTrainerComponent:
         self.train_batch_size = self.trainer.train_data_loader.batch_size
         self.accuracy = Accuracy()
 
-        feature_visualizer = GeneratedSourceFeatureVisualizer()
+        feature_visualizer = GeneratedConditionalSourceFeatureVisualizer()
         for e in range(epoch):
             for i, (source_data, source_labels) in enumerate(
                     trainer.train_data_loader):
                 source_data = source_data.to(trainer.device)
                 source_labels = source_labels.to(trainer.device)
                 classification_loss, accuracy = self._train_supervised(source_data, source_labels)
-                discriminator_loss, generator_loss = self._train_source_modeling(source_data, source_labels)
+                discriminator_loss, generator_loss, gen_classification_loss = self._train_source_modeling(source_data, source_labels)
                 trainer.experiment.log_metric('D(x)', discriminator_loss.item())
                 trainer.experiment.log_metric('D(G(x))', generator_loss.item())
+                trainer.experiment.log_metric('NLL G(x)', gen_classification_loss.item())
                 trainer.experiment.log_metric('NLL F(x)', classification_loss.item())
                 trainer.experiment.log_metric('Accuracy', accuracy)
 
-            # feature_visualizer.visualize(trainer, e)
+            feature_visualizer.visualize(trainer, e)
             trainer.experiment.log_current_epoch(e)
-            print("Epoch: {} Acc: {} D(x): {} D(G(x)): {} NLL F(x): {}".format(
-                e, accuracy, discriminator_loss.item(), generator_loss.item(), classification_loss.item(), ))
+            print("Epoch: {} Acc: {} D(x): {} D(G(x)): {} NLL F(x): {} NLL G(x): {}".format(
+                e, accuracy, discriminator_loss.item(), generator_loss.item(), classification_loss.item(), gen_classification_loss.item()))
 
     def _train_supervised(self, source_data, source_labels):
         # init
@@ -36,8 +38,9 @@ class CSMTrainerComponent:
         self.trainer.source_optim.zero_grad()
 
         # forward
+        batch_size = source_data.size(0)
         source_features = self.trainer.model.source_encoder(source_data)
-        source_preds = self.trainer.model.classifier(source_features)
+        source_preds = self.trainer.model.classifier(source_features.view(batch_size, -1))
         classifier_loss = F.nll_loss(source_preds, source_labels)
 
         # backward
@@ -58,6 +61,7 @@ class CSMTrainerComponent:
         self.trainer.source_optim.zero_grad()
         self.trainer.source_domain_generator_optim.zero_grad()
         self.trainer.source_domain_discriminator_optim.zero_grad()
+        self.trainer.classifier_optim.zero_grad()
 
         source_features = self.trainer.model.source_encoder(source_data)
         source_features_size = source_features.size()
@@ -84,6 +88,7 @@ class CSMTrainerComponent:
         self.trainer.source_optim.zero_grad()
         self.trainer.source_domain_generator_optim.zero_grad()
         self.trainer.source_domain_discriminator_optim.zero_grad()
+        self.trainer.classifier_optim.zero_grad()
 
         z = torch.randn(source_labels.size(0), self.trainer.model.source_generator.z_dim)
         z = z.to(self.trainer.device).detach()
@@ -99,7 +104,7 @@ class CSMTrainerComponent:
         loss.backward()
         self.trainer.source_domain_generator_optim.step()
 
-        return discriminator_loss, generator_loss
+        return discriminator_loss, generator_loss, classification_loss
 
     def _rm_map(self, features):
 

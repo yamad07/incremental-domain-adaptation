@@ -29,8 +29,6 @@ class IDAMNIST(MNIST):
             train=train,
             download=download)
         del self.train
-        self.source_data = self.train_data
-        self.source_labels = self.train_labels
         self.set_digit_height(0)
         self.__train = train
 
@@ -44,18 +42,25 @@ class IDAMNIST(MNIST):
             ])
 
     def __getitem__(self, idx):
-        source_img = self.source_data[idx]
-        source_label = self.source_labels[idx]
+        img = self.train_data[idx]
+        label = self.train_labels[idx]
+        img = Image.fromarray(img.numpy(), mode='L')
+        img = self.transform(img)
+        img = torch.cat([img, img, img], dim=0)
 
-        source_img = Image.fromarray(source_img.numpy(), mode='L')
-
-        return self.transform(source_img), source_label
+        return img, label
 
     def train(self):
         self.__train = True
 
     def eval(self):
         self.__train = False
+
+    def __len__(self):
+        if self.__train:
+            return len(self.train_data)
+        else:
+            return len(self.test_data)
 
     @property
     def domain_name(self):

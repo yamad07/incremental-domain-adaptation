@@ -15,17 +15,8 @@ from src.trainers import (
         DATrainerComponent,
         SMTrainerComponent,
         SegCDATrainerComponent,
-        SegCSMTrainerComponent
-        )
-from src.analyzers import (
-        TargetFeatureVisualizer,
-        SourceEncoderAccuracyValidator,
-        TargetEncoderAccuracyValidator,
-        SourceGeneratorAccuracyValidator,
-        GeneratedSourceFeatureVisualizer,
-        TargetEncoderBNIoUAccuracyValidator,
-        SourceEncoderIoUAccuracyValidator,
-        TargetEncoderIoUAccuracyValidator
+        SegCSMTrainerComponent,
+        AdaINDATrainerComponent,
         )
 from src.trainers.incrementals.mnist import IncrementalMnistTrainer
 from src.trainers.incrementals.cityscapes import IncrementalCityscapesTrainer
@@ -63,7 +54,7 @@ experiment = Experiment(api_key="laHAJPKUmrD2TV2dIaOWFYGkQ",
 train_cityscapes_dataset = CityscapesDataset(
         cityscapes_data_path='/data/ubuntu/cityscapes/leftImg8bit',
         cityscapes_meta_path='/data/ubuntu/cityscapes/gtFine',
-        train_city_list = ["jena/"]
+        train_city_list = ["zurich/", "weimar/", "ulm/"]
         )
 
 train_data_loader = data.DataLoader(train_cityscapes_dataset, batch_size=config['batch_size'], shuffle=True)
@@ -71,7 +62,7 @@ train_data_loader = data.DataLoader(train_cityscapes_dataset, batch_size=config[
 val_cityscapes_dataset = CityscapesDataset(
         cityscapes_data_path='/data/ubuntu/cityscapes/leftImg8bit',
         cityscapes_meta_path='/data/ubuntu/cityscapes/gtFine',
-        train_city_list = ["jena/"]
+        train_city_list = ["zurich/", "weimar/", "ulm/"]
         )
 val_data_loader = data.DataLoader(
     val_cityscapes_dataset, batch_size=config['batch_size'], shuffle=True)
@@ -105,16 +96,13 @@ trainer = IncrementalCityscapesTrainer(
             # SegCSMTrainerComponent(),
             # SegCDATrainerComponent(),
             SMTrainerComponent(),
-            DATrainerComponent(
-                target_validator=TargetEncoderAccuracyValidator(),
-                source_validator=SourceEncoderAccuracyValidator()
-                ),
+            # AdaINDATrainerComponent(),
         ],
-        epoch_component_list=[100, 10],
+        epoch_component_list=[100, 0],
         experiment=experiment,
         train_data_loader=train_data_loader,
         valid_data_loader=val_data_loader,
-        cuda_id=2,
+        cuda_id=1,
         analyzer_list=[
             # TargetImageSaver(),
             ]
